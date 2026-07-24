@@ -1261,9 +1261,13 @@ class InputBatch:
         output_token_ids = cast(list[list[int]], self.req_output_token_ids) if needs_output_token_ids else []
         output_token_ids_tensor = None
         token_history_ids, token_history_lens = None, None
-        token_history_ids_cpu, token_history_lens_cpu = (
-            self._get_token_history_cpu_views(num_reqs) if not self.no_dry else (None, None)
-        )
+        # The DRY CPU kernel cannot be fed from token_ids_cpu here: cached views
+        # freeze at metadata-build width and hide every generated token, while
+        # live full-width views expose async-scheduling placeholder ids (-1) at
+        # sampling time. Passing None makes Sampler.apply_dry fall back to the
+        # persistent state, which update_dry_state keeps in sync with the real
+        # sampled ids each step.
+        token_history_ids_cpu, token_history_lens_cpu = (None, None)
 
         allowed_token_ids_mask: torch.Tensor | None = None
         if not self.no_allowed_token_ids:
@@ -1413,13 +1417,6 @@ class InputBatch:
                     dtype=torch.int64,
                 )
         return output_token_ids_cpu_tensor.to(device=self.device, non_blocking=True)
-
-    def _get_token_history_cpu_views(self, num_reqs: int) -> tuple[torch.Tensor, torch.Tensor]:
-        max_history_len = int(self.num_tokens_no_spec[:num_reqs].max()) if num_reqs else 0
-        return (
-            self.token_ids_cpu_tensor[:num_reqs, :max_history_len],
-            self.num_tokens_no_spec_cpu_tensor[:num_reqs],
-        )
 
     def _make_token_history_tensors(self, num_reqs: int) -> tuple[torch.Tensor, torch.Tensor]:
         history_lens = torch.as_tensor(
