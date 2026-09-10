@@ -1127,9 +1127,7 @@ class Exl3MoEMethod(FusedMoEMethodBase):
         # (flat_expert_local clamp via torch.where), which this fast/prefill
         # path lost when the kernels were last synced from upstream.
         _valid_expert = (flat_expert >= 0) & (flat_expert < layer.local_num_experts)
-        flat_expert = torch.where(
-            _valid_expert, flat_expert, torch.full_like(flat_expert, layer.local_num_experts)
-        )
+        flat_expert = torch.where(_valid_expert, flat_expert, torch.full_like(flat_expert, layer.local_num_experts))
         flat_weight = topk_weights.reshape(-1)
         flat_token = torch.arange(x_2d.shape[0], device=x_2d.device)
         flat_token = flat_token.repeat_interleave(topk_ids.shape[-1])
