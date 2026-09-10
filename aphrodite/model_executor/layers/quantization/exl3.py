@@ -1146,6 +1146,14 @@ class Exl3MoEMethod(FusedMoEMethodBase):
             dtype=torch.float32,
         )
         flat_expert = topk_ids.reshape(-1)
+        # Route ids outside [0, local_num_experts) — e.g. padding tokens in
+        # the startup memory-profiling dummy batch — into the sentinel bucket
+        # at index local_num_experts instead of scatter_add_ing them out of
+        # bounds below. Mirrors exllamav3's block_sparse_mlp.py reference
+        # (flat_expert_local clamp via torch.where), which this fast/prefill
+        # path lost when the kernels were last synced from upstream.
+        _valid_expert = (flat_expert >= 0) & (flat_expert < layer.local_num_experts)
+        flat_expert = torch.where(_valid_expert, flat_expert, torch.full_like(flat_expert, layer.local_num_experts))
         flat_weight = topk_weights.reshape(-1)
         flat_token = torch.arange(x_2d.shape[0], device=x_2d.device)
         flat_token = flat_token.repeat_interleave(topk_ids.shape[-1])
