@@ -7,20 +7,18 @@ import functools
 import os
 from argparse import Namespace
 from http import HTTPStatus
-from logging import Logger
 
 import regex as re
 from fastapi import Request
 from fastapi.responses import JSONResponse, StreamingResponse
 from starlette.background import BackgroundTask, BackgroundTasks
 
-from aphrodite import envs
 from aphrodite.engine.arg_utils import EngineArgs
 from aphrodite.entrypoints.generate.base.protocol import StreamOptions
 from aphrodite.entrypoints.openai.models.protocol import LoRAModulePath
 from aphrodite.entrypoints.serve.engine.protocol import ErrorInfo, ErrorResponse
 from aphrodite.exceptions import GenerationError
-from aphrodite.logger import current_formatter_type, init_logger
+from aphrodite.logger import init_logger
 from aphrodite.platforms import current_platform
 from aphrodite.utils.argparse_utils import FlexibleArgumentParser
 
@@ -255,25 +253,6 @@ def sanitize_message(message: str) -> str:
     message = re.sub(r"/(?:home|usr|opt|var|tmp|root|lib|mnt|srv)(?:/[\w.\-]+)+", "<path>", message)
     message = re.sub(r"(?:/[\w\-]+)+/[\w\-]+\.\w+", "<path>", message)
     return message.strip()
-
-
-def log_version_and_model(lgr: Logger, version: str, model_name: str) -> None:
-    logo = r"""                                                                          
-     ▄▄▄  ▄▄▄▄  ▄▄ ▄▄ ▄▄▄▄   ▄▄▄  ▄▄▄▄  ▄▄ ▄▄▄▄▄▄ ▄▄▄▄▄ 
-    ██▀██ ██▄█▀ ██▄██ ██▄█▄ ██▀██ ██▀██ ██   ██   ██▄▄  
-    ██▀██ ██    ██ ██ ██ ██ ▀███▀ ████▀ ██   ██   ██▄▄▄ 
-                                                                                                   
-    """
-    if envs.APHRODITE_DISABLE_LOG_LOGO or current_formatter_type(lgr) is None:
-        message = "Aphrodite server version %s, serving model %s"
-        lgr.info(message, version, model_name)
-    else:
-        logo_lines = logo.splitlines()
-        logo_width = max((len(line.rstrip()) for line in logo_lines if line.strip()), default=0)
-        version_line = f"version: {version}".center(logo_width)
-        model_line = f"model: {model_name}".center(logo_width)
-        message = f"\n{logo}\n{version_line}\n{model_line}\n"
-        lgr.info("%s", message)
 
 
 def create_error_response(
