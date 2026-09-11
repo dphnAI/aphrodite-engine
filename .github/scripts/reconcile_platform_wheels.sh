@@ -181,6 +181,10 @@ echo "Platform: ${PLATFORM_BACKEND}/${PLATFORM_ARCHITECTURE}"
 echo "Last contiguous build: ${last_built:-none}"
 echo "Commits requiring reconciliation: ${#commits[@]}"
 
+# "${commits[@]}" on a genuinely empty array trips "unbound variable" under
+# `set -u` on bash < 4.4 (macOS system /bin/bash is 3.2.57); ${#commits[@]}
+# is safe either way, so gate the loop on the count instead.
+if ((${#commits[@]} > 0)); then
 for commit in "${commits[@]}"; do
   restore_tracked_build_changes
   git checkout --detach "$commit"
@@ -229,6 +233,7 @@ for commit in "${commits[@]}"; do
 
   printf '%s\n' "$commit" | "$rclone" rcat "$state_remote"
 done
+fi
 
 restore_tracked_build_changes
 git checkout --detach "$target_commit"
