@@ -306,9 +306,10 @@ def log_version_and_model(lgr: Logger, version: str, model_name: str) -> None:
 
     logo_template = Template(
         "\n"
-        "${w}     ▄▄▄  ▄▄▄▄  ▄▄ ▄▄ ▄▄▄▄   ▄▄▄  ▄▄▄▄  ▄▄ ▄▄▄▄▄▄ ▄▄▄▄▄${r}\n"
-        "${w}    ██▀██ ██▄█▀ ██▄██ ██▄█▄ ██▀██ ██▀██ ██   ██   ██▄▄${r}\n"
-        "${w}    ██▀██ ██    ██ ██ ██ ██ ▀███▀ ████▀ ██   ██   ██▄▄▄${r}\n"
+        "${w}     ▗▄▄▖ ▗▄▖ ▗▖  ▗▖ ▗▄▖ ▗▄▄▖${r}\n"
+        "${w}    ▐▌   ▐▌ ▐▌▐▛▚▖▐▌▐▌ ▐▌▐▌ ▐▌${r}\n"
+        "${w}     ▝▀▚▖▐▌ ▐▌▐▌ ▝▜▌▐▛▀▜▌▐▛▀▚▖${r}\n"
+        "${w}    ▗▄▄▞▘▝▚▄▞▘▐▌  ▐▌▐▌ ▐▌▐▌ ▐▌${r}\n"
     )
     colors = {"w": "\033[1m", "r": "\033[0m"}  # bold default foreground, reset
     if formatter != "color":
@@ -316,7 +317,7 @@ def log_version_and_model(lgr: Logger, version: str, model_name: str) -> None:
         colors = dict.fromkeys(colors, "")
 
     logo = logo_template.substitute(colors)
-    width = 54  # logo art width
+    width = max(len(line) for line in logo_template.substitute(w="", r="").splitlines())
     version_line = f"version: {version}".center(width)
     model_line = f"model: {model_name}".center(width)
     lgr.info("%s\n%s\n%s\n", logo, version_line, model_line)
