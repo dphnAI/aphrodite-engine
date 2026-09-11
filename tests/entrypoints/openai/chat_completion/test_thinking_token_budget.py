@@ -166,14 +166,20 @@ def server_async_scheduling():
         yield remote_server
 
 
+_SERVER_FIXTURE_BY_PARAM = {
+    "default": "server",
+    "auto_config": "server_with_auto_reasoning_config",
+    "async_scheduling": "server_async_scheduling",
+}
+
+
 @pytest_asyncio.fixture
-async def client(request, server, server_with_auto_reasoning_config, server_async_scheduling):
-    server_map = {
-        "default": server,
-        "auto_config": server_with_auto_reasoning_config,
-        "async_scheduling": server_async_scheduling,
-    }
-    target_server = server_map[request.param]
+async def client(request):
+    # Look up the target server fixture by name and only resolve that one,
+    # instead of taking all three module-scoped servers (each reserving 40%
+    # of VRAM) as direct fixture arguments, which would spin up all three
+    # for every test regardless of which one the test actually parametrizes.
+    target_server = request.getfixturevalue(_SERVER_FIXTURE_BY_PARAM[request.param])
     async with target_server.get_async_client() as async_client:
         yield async_client
 
